@@ -1,0 +1,20 @@
+{
+  "name": "royella-hotel-api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Express + MongoDB (Mongoose) API backend for the Royella Hotel React frontend",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "seed": "node seed/seed.js",
+    "seed:destroy": "node seed/seed.js --destroy",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "mongoose": "^8.8.3"
+  }
+}
