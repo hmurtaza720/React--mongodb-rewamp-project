@@ -13,7 +13,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http:/
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || process.env.VERCEL) {
         return callback(null, true);
       }
       callback(new Error('Not allowed by CORS'));
@@ -21,6 +21,16 @@ app.use(
   })
 );
 app.use(express.json());
+
+// Ensure MongoDB is connected (cached across serverless invocations)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api', apiRouter);
@@ -30,19 +40,16 @@ app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
-// Central error handler (catches anything thrown outside a route's own try/catch)
+// Central error handler
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 500).json({ message: err.message || 'Internal server error' });
 });
 
-async function start() {
-  await connectDB();
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`[Server] Royella API running on http://localhost:${PORT}`);
   });
 }
-
-start();
 
 export default app;
