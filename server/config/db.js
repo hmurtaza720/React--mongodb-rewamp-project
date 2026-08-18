@@ -1,28 +1,40 @@
 import mongoose from 'mongoose';
 
+let isConnected = false;
+
 /**
  * Connects to MongoDB using the MONGODB_URI environment variable.
- * Exits the process on failure so the failure is loud and immediate
- * instead of the API silently serving 500s for every request.
+ * Reuses active connection across serverless invocations.
  */
 export async function connectDB() {
+  if (isConnected || mongoose.connection.readyState === 1) {
+    isConnected = true;
+    return;
+  }
+
   const uri = process.env.MONGODB_URI;
 
   if (!uri) {
-    console.error(
-      '\n[MongoDB] MONGODB_URI is not set.\n' +
-      'Copy server/.env.example to server/.env and paste in your MongoDB Atlas connection string.\n'
-    );
-    process.exit(1);
+    console.error('\n[MongoDB] MONGODB_URI is not set in Environment Variables.\n');
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    }
+    throw new Error('MONGODB_URI is missing in Vercel environment variables.');
   }
 
   try {
     mongoose.set('strictQuery', true);
-    const conn = await mongoose.connect(uri);
+    const conn = await mongoose.connect(uri, {
+      bufferCommands: false
+    });
+    isConnected = true;
     console.log(`[MongoDB] Connected: ${conn.connection.host}/${conn.connection.name}`);
   } catch (err) {
     console.error('[MongoDB] Connection failed:', err.message);
-    process.exit(1);
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    }
+    throw err;
   }
 }
 
